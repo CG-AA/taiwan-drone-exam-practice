@@ -64,6 +64,9 @@ fieldset label { display: block; margin: 6px 0; cursor: pointer; }
 
 .hint { color: var(--muted); font-size: 0.85rem; }
 
+#wrong-book .nav-row { margin: 10px 0 4px; }
+#wrong-book .hint { margin: 4px 0 6px; }
+
 button {
   font: inherit;
   color: var(--text);

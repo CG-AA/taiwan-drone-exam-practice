@@ -31,6 +31,15 @@
           <input type="number" id="custom-count" min="1" step="1" value="60" disabled></label>
       </div>
     </fieldset>
+    <fieldset id="wrong-book">
+      <legend>錯題本</legend>
+      <p class="hint" id="wrong-count">目前錯題本共 0 題</p>
+      <label><input type="checkbox" id="auto-remove" checked> 答對後自動從錯題本移除</label>
+      <div class="nav-row">
+        <button id="wrong-exam-btn">錯題重測</button>
+        <button id="clear-wrong-btn" class="ghost">清空錯題本</button>
+      </div>
+    </fieldset>
     <p class="hint">不計時；作答完成後按「交卷」即顯示成績。正式測驗及格標準為 85 分。</p>
     <button id="start-btn" class="primary">開始測驗</button>
   </section>
@@ -61,6 +70,7 @@
       <div id="score-value"></div>
       <div id="score-detail"></div>
       <div id="pass-badge"></div>
+      <p id="wrong-summary" class="hint"></p>
     </div>
     <div class="nav-row">
       <button id="review-btn">檢視錯題</button>
