@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>遙控無人機專業操作證 學科測驗模擬</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚁</text></svg>">
+</head>
+<body>
+<header>
+  <h1>遙控無人機專業操作證 學科測驗模擬</h1>
+  <p class="subtitle">題庫來源：民航局遙控無人機專業操作證學科測驗題庫（114.5.28）</p>
+</header>
+
+<main>
+  <!-- 設定畫面 -->
+  <section id="setup-screen">
+    <h2>測驗設定</h2>
+    <fieldset id="chapter-select">
+      <legend>選擇章節</legend>
+      <!-- 章節核取方塊由 app.js 產生 -->
+    </fieldset>
+    <fieldset>
+      <legend>題數</legend>
+      <div class="count-options">
+        <label><input type="radio" name="count" value="40" checked> 40 題（模擬正式測驗）</label>
+        <label><input type="radio" name="count" value="20"> 20 題（快速練習）</label>
+        <label><input type="radio" name="count" value="all"> 全部題目</label>
+        <label><input type="radio" name="count" value="custom"> 自訂
+          <input type="number" id="custom-count" min="1" step="1" value="60" disabled></label>
+      </div>
+    </fieldset>
+    <p class="hint">不計時；作答完成後按「交卷」即顯示成績。正式測驗及格標準為 85 分。</p>
+    <button id="start-btn" class="primary">開始測驗</button>
+  </section>
+
+  <!-- 作答畫面 -->
+  <section id="exam-screen" hidden>
+    <div class="exam-top">
+      <span id="progress-label"></span>
+      <button id="quit-btn" class="ghost">放棄測驗</button>
+    </div>
+    <div id="question-card">
+      <p id="question-chapter" class="q-chapter"></p>
+      <p id="question-stem" class="q-stem"></p>
+      <div id="options"></div>
+    </div>
+    <div class="nav-row">
+      <button id="prev-btn">上一題</button>
+      <button id="next-btn">下一題</button>
+      <button id="submit-btn" class="primary">交卷</button>
+    </div>
+    <div id="palette"></div>
+  </section>
+
+  <!-- 成績畫面 -->
+  <section id="result-screen" hidden>
+    <h2>測驗結果</h2>
+    <div id="score-box">
+      <div id="score-value"></div>
+      <div id="score-detail"></div>
+      <div id="pass-badge"></div>
+    </div>
+    <div class="nav-row">
+      <button id="review-btn">檢視錯題</button>
+      <button id="restart-btn" class="primary">再測一次</button>
+    </div>
+    <div id="review-list" hidden></div>
+  </section>
+</main>
+
+<footer>
+  <p>僅供練習參考，正式題庫與規定以 <a href="https://www.caa.gov.tw/" target="_blank" rel="noopener">交通部民用航空局</a> 公告為準。</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
