@@ -2,10 +2,53 @@
 
 const PASS_SCORE = 85; // 正式測驗及格分數（百分制）
 
+const WRONG_KEY = "droneExamWrong";           // localStorage：錯題 id 清單
+const AUTO_REMOVE_KEY = "droneExamAutoRemove"; // localStorage：答對後自動移除
+
 let bank = null;        // questions.json 內容
 let exam = null;        // { questions: [...], answers: [null|'A'..'D'], index }
 
 const $ = (id) => document.getElementById(id);
+
+// ---- 錯題本（localStorage）----
+
+const wrongIdOf = (q) => `${q.chapterIndex}:${q.number}`;
+
+function loadWrongIds() {
+  try {
+    const ids = JSON.parse(localStorage.getItem(WRONG_KEY));
+    return new Set(Array.isArray(ids) ? ids : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveWrongIds(set) {
+  try {
+    localStorage.setItem(WRONG_KEY, JSON.stringify([...set]));
+  } catch {
+    // 無痕模式等情況下無法寫入，僅本次不保存
+  }
+}
+
+// 依 id 找回題目物件；題庫更新後失效的 id 會被略過
+function resolveWrongQuestions(ids) {
+  const questions = [];
+  for (const id of ids) {
+    const [ci, num] = id.split(":").map(Number);
+    const ch = bank.chapters[ci];
+    const q = ch?.questions.find((qq) => qq.number === num);
+    if (q) questions.push({ ...q, chapter: ch.title, chapterIndex: ci });
+  }
+  return questions;
+}
+
+function refreshWrongUi() {
+  const n = loadWrongIds().size;
+  $("wrong-count").textContent = `目前錯題本共 ${n} 題`;
+  $("wrong-exam-btn").disabled = n === 0;
+  $("clear-wrong-btn").disabled = n === 0;
+}
 
 init();
 
@@ -30,6 +73,21 @@ async function init() {
     })
   );
 
+  const autoRemove = $("auto-remove");
+  autoRemove.checked = localStorage.getItem(AUTO_REMOVE_KEY) !== "0";
+  autoRemove.addEventListener("change", () => {
+    try {
+      localStorage.setItem(AUTO_REMOVE_KEY, autoRemove.checked ? "1" : "0");
+    } catch {}
+  });
+  $("wrong-exam-btn").addEventListener("click", startWrongExam);
+  $("clear-wrong-btn").addEventListener("click", () => {
+    if (!confirm("確定要清空錯題本嗎？")) return;
+    saveWrongIds(new Set());
+    refreshWrongUi();
+  });
+  refreshWrongUi();
+
   $("start-btn").addEventListener("click", startExam);
   $("prev-btn").addEventListener("click", () => gotoQuestion(exam.index - 1));
   $("next-btn").addEventListener("click", () => gotoQuestion(exam.index + 1));
@@ -47,14 +105,18 @@ async function init() {
 
 function startExam() {
   const chosen = [...document.querySelectorAll("#chapter-select input:checked")]
-    .map((cb) => bank.chapters[Number(cb.value)]);
+    .map((cb) => Number(cb.value));
   if (chosen.length === 0) {
     alert("請至少選擇一個章節。");
     return;
   }
 
-  const pool = chosen.flatMap((ch) =>
-    ch.questions.map((q) => ({ ...q, chapter: ch.title }))
+  const pool = chosen.flatMap((ci) =>
+    bank.chapters[ci].questions.map((q) => ({
+      ...q,
+      chapter: bank.chapters[ci].title,
+      chapterIndex: ci,
+    }))
   );
 
   const mode = document.querySelector('input[name="count"]:checked').value;
@@ -71,6 +133,20 @@ function startExam() {
     questions = shuffle([...pool]).slice(0, n);
   }
 
+  beginExam(questions);
+}
+
+// 錯題重測：全部錯題洗牌後作答
+function startWrongExam() {
+  const questions = shuffle(resolveWrongQuestions(loadWrongIds()));
+  if (questions.length === 0) {
+    alert("錯題本是空的，先做一次測驗吧！");
+    return;
+  }
+  beginExam(questions);
+}
+
+function beginExam(questions) {
   exam = {
     questions,
     answers: new Array(questions.length).fill(null),
@@ -149,6 +225,22 @@ function submitExam() {
     else wrong.push(i);
   });
 
+  // 更新錯題本：答錯（含未作答）加入；勾選自動移除時，答對即移出
+  const wrongIds = loadWrongIds();
+  const autoRemove = $("auto-remove").checked;
+  let added = 0, removed = 0;
+  exam.questions.forEach((q, i) => {
+    const id = wrongIdOf(q);
+    if (exam.answers[i] !== q.answer) {
+      if (!wrongIds.has(id)) { wrongIds.add(id); added++; }
+    } else if (autoRemove && wrongIds.delete(id)) {
+      removed++;
+    }
+  });
+  saveWrongIds(wrongIds);
+  $("wrong-summary").textContent =
+    `錯題本：新增 ${added} 題、移除 ${removed} 題（現共 ${wrongIds.size} 題）`;
+
   const total = exam.questions.length;
   const score = Math.round((correct / total) * 10000) / 100;
   $("score-value").textContent = `${score} 分`;
@@ -186,6 +278,7 @@ function showScreen(id) {
   for (const s of ["setup-screen", "exam-screen", "result-screen"]) {
     $(s).hidden = s !== id;
   }
+  if (id === "setup-screen") refreshWrongUi();
   window.scrollTo(0, 0);
 }
 

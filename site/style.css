@@ -64,6 +64,9 @@ fieldset label { display: block; margin: 6px 0; cursor: pointer; }
 
 .hint { color: var(--muted); font-size: 0.85rem; }
 
+#wrong-book .nav-row { margin: 10px 0 4px; }
+#wrong-book .hint { margin: 4px 0 6px; }
+
 button {
   font: inherit;
   color: var(--text);
@@ -73,7 +76,6 @@ button {
   padding: 8px 18px;
   cursor: pointer;
 }
-button:hover:not(:disabled) { border-color: var(--primary); }
 button:disabled { opacity: 0.45; cursor: default; }
 
 button.primary {
@@ -81,7 +83,6 @@ button.primary {
   border-color: var(--primary);
   color: #fff;
 }
-button.primary:hover:not(:disabled) { background: var(--primary-dark); }
 
 button.ghost {
   border: none;
@@ -89,7 +90,16 @@ button.ghost {
   color: var(--muted);
   padding: 4px 8px;
 }
-button.ghost:hover { color: var(--red); }
+
+/* Hover feedback only where a real hover pointer exists. On touch devices
+   :hover is "sticky" — it clings to the last-tapped button and would keep a
+   primary-coloured border (identical to .option.selected) visible on the next
+   question, making an unanswered option look selected. */
+@media (hover: hover) {
+  button:hover:not(:disabled) { border-color: var(--primary); }
+  button.primary:hover:not(:disabled) { background: var(--primary-dark); }
+  button.ghost:hover { color: var(--red); }
+}
 
 .exam-top {
   display: flex;
