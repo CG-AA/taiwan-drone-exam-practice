@@ -4,7 +4,7 @@ const PASS_SCORE = 85; // 正式測驗及格分數（百分制）
 
 const WRONG_KEY = "droneExamWrong";           // localStorage：錯題 id 清單
 const AUTO_REMOVE_KEY = "droneExamAutoRemove"; // localStorage：答對後自動移除
-const CORRECT_KEY = "droneExamCorrect";        // localStorage：已答對題目 id 清單
+const CORRECT_KEY = "droneExamCorrect";        // localStorage：已答對題目 id 清單（累積制，僅手動移除）
 const EXCLUDE_CORRECT_KEY = "droneExamExcludeCorrect"; // localStorage：排除已答對偏好
 
 let bank = null;        // questions.json 內容
@@ -68,11 +68,81 @@ function refreshWrongUi() {
   const n = loadWrongIds().size;
   $("wrong-count").textContent = `目前錯題本共 ${n} 題`;
   $("wrong-exam-btn").disabled = n === 0;
+  $("manage-wrong-btn").disabled = n === 0;
   $("clear-wrong-btn").disabled = n === 0;
 
   const c = loadCorrectIds().size;
-  $("correct-count").textContent = `已答對 ${c} 題`;
+  $("correct-count").textContent = `已累積答對 ${c} 題`;
+  $("manage-correct-btn").disabled = c === 0;
   $("clear-correct-btn").disabled = c === 0;
+}
+
+// ---- 管理畫面：逐題檢視／移除 ----
+
+let manageTab = "wrong"; // 目前分頁："wrong" | "correct"
+
+function openManage(tab) {
+  manageTab = tab;
+  renderManage();
+  showScreen("manage-screen");
+}
+
+function renderManage() {
+  const isWrong = manageTab === "wrong";
+  const wrongIds = loadWrongIds();
+  const correctIds = loadCorrectIds();
+  const tabWrong = $("manage-tab-wrong");
+  const tabCorrect = $("manage-tab-correct");
+  tabWrong.textContent = `錯題本（${wrongIds.size}）`;
+  tabCorrect.textContent = `答對紀錄（${correctIds.size}）`;
+  tabWrong.className = isWrong ? "active" : "";
+  tabCorrect.className = isWrong ? "" : "active";
+  tabWrong.setAttribute("aria-pressed", String(isWrong));
+  tabCorrect.setAttribute("aria-pressed", String(!isWrong));
+
+  const ids = isWrong ? wrongIds : correctIds;
+  const questions = resolveWrongQuestions(ids);
+  let countText = `共 ${questions.length} 題`;
+  if (ids.size > questions.length) {
+    countText += `（另有 ${ids.size - questions.length} 題已不在最新題庫，將自動略過）`;
+  }
+  $("manage-count").textContent = countText;
+
+  const list = $("manage-list");
+  list.innerHTML = "";
+  if (questions.length === 0) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = isWrong
+      ? "錯題本是空的，做一次測驗後答錯的題目會出現在這裡。"
+      : "還沒有答對紀錄，作答正確的題目會累積在這裡。";
+    list.append(p);
+    return;
+  }
+  questions.forEach((q) => {
+    const div = document.createElement("div");
+    div.className = "review-item manage-item";
+    div.innerHTML = `
+      <div class="manage-item-body">
+        <p class="q-chapter">${escapeHtml(q.chapter)}</p>
+        <p class="q-stem">${q.number}. ${escapeHtml(q.stem)}</p>
+        <p class="correct-answer">正確答案：(${q.answer}) ${escapeHtml(q.options[q.answer])}</p>
+      </div>`;
+    const btn = document.createElement("button");
+    btn.className = "ghost";
+    btn.textContent = "移除";
+    btn.addEventListener("click", () => removeFromBook(wrongIdOf(q)));
+    div.append(btn);
+    list.append(div);
+  });
+}
+
+// 從目前分頁對應的紀錄中移除單一題目
+function removeFromBook(id) {
+  const ids = manageTab === "wrong" ? loadWrongIds() : loadCorrectIds();
+  ids.delete(id);
+  (manageTab === "wrong" ? saveWrongIds : saveCorrectIds)(ids);
+  renderManage();
 }
 
 init();
@@ -115,15 +185,20 @@ async function init() {
 
   $("wrong-exam-btn").addEventListener("click", startWrongExam);
   $("clear-wrong-btn").addEventListener("click", () => {
-    if (!confirm("確定要清空錯題本嗎？")) return;
+    if (!confirm(`確定要清空錯題本（共 ${loadWrongIds().size} 題）嗎？`)) return;
     saveWrongIds(new Set());
     refreshWrongUi();
   });
   $("clear-correct-btn").addEventListener("click", () => {
-    if (!confirm("確定要清除答對紀錄嗎？")) return;
+    if (!confirm(`確定要清除答對紀錄（共 ${loadCorrectIds().size} 題）嗎？`)) return;
     saveCorrectIds(new Set());
     refreshWrongUi();
   });
+  $("manage-wrong-btn").addEventListener("click", () => openManage("wrong"));
+  $("manage-correct-btn").addEventListener("click", () => openManage("correct"));
+  $("manage-tab-wrong").addEventListener("click", () => { manageTab = "wrong"; renderManage(); });
+  $("manage-tab-correct").addEventListener("click", () => { manageTab = "correct"; renderManage(); });
+  $("manage-back-btn").addEventListener("click", () => showScreen("setup-screen"));
   refreshWrongUi();
 
   $("start-btn").addEventListener("click", startExam);
@@ -273,7 +348,7 @@ function submitExam() {
   });
 
   // 更新錯題本：答錯（含未作答）加入；勾選自動移除時，答對即移出
-  // 同步維護「已答對」紀錄：以最近一次作答為準（答對則記錄、答錯則移除）
+  // 「已答對」紀錄為累積制：曾答對即保留，只能在管理頁或清除按鈕手動移除
   const wrongIds = loadWrongIds();
   const correctIds = loadCorrectIds();
   const autoRemove = $("auto-remove").checked;
@@ -281,7 +356,6 @@ function submitExam() {
   exam.questions.forEach((q, i) => {
     const id = wrongIdOf(q);
     if (exam.answers[i] !== q.answer) {
-      correctIds.delete(id);
       if (!wrongIds.has(id)) { wrongIds.add(id); added++; }
     } else {
       correctIds.add(id);
@@ -291,7 +365,7 @@ function submitExam() {
   saveWrongIds(wrongIds);
   saveCorrectIds(correctIds);
   $("wrong-summary").textContent =
-    `錯題本：新增 ${added} 題、移除 ${removed} 題（現共 ${wrongIds.size} 題）`;
+    `錯題本：新增 ${added} 題、移除 ${removed} 題（現共 ${wrongIds.size} 題）；答對紀錄現共 ${correctIds.size} 題`;
 
   const total = exam.questions.length;
   const score = Math.round((correct / total) * 10000) / 100;
@@ -327,7 +401,7 @@ function submitExam() {
 }
 
 function showScreen(id) {
-  for (const s of ["setup-screen", "exam-screen", "result-screen"]) {
+  for (const s of ["setup-screen", "manage-screen", "exam-screen", "result-screen"]) {
     $(s).hidden = s !== id;
   }
   if (id === "setup-screen") refreshWrongUi();

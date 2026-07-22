@@ -165,6 +165,22 @@ button.ghost {
   border-top: 1px solid var(--border);
   padding: 12px 0;
 }
+
+#manage-tabs { margin: 0 0 4px; }
+#manage-tabs button.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+}
+
+.manage-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.manage-item-body { flex: 1; min-width: 0; }
+.manage-item .q-stem { margin-bottom: 6px; }
 .review-item .your-answer { color: var(--red); margin: 2px 0; }
 .review-item .correct-answer { color: var(--green); margin: 2px 0; }
 

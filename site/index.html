@@ -37,19 +37,35 @@
       <label><input type="checkbox" id="auto-remove" checked> 答對後自動從錯題本移除</label>
       <div class="nav-row">
         <button id="wrong-exam-btn">錯題重測</button>
+        <button id="manage-wrong-btn" class="ghost">管理錯題本</button>
         <button id="clear-wrong-btn" class="ghost">清空錯題本</button>
       </div>
     </fieldset>
     <fieldset id="correct-book">
       <legend>答對紀錄</legend>
-      <p class="hint" id="correct-count">已答對 0 題</p>
-      <label><input type="checkbox" id="exclude-correct"> 排除已答對的題目（以最近一次作答為準）</label>
+      <p class="hint" id="correct-count">已累積答對 0 題</p>
+      <label><input type="checkbox" id="exclude-correct"> 排除已答對過的題目（曾經答對即不再出題）</label>
       <div class="nav-row">
+        <button id="manage-correct-btn" class="ghost">管理答對紀錄</button>
         <button id="clear-correct-btn" class="ghost">清除答對紀錄</button>
       </div>
     </fieldset>
     <p class="hint">不計時；作答完成後按「交卷」即顯示成績。正式測驗及格標準為 85 分。</p>
     <button id="start-btn" class="primary">開始測驗</button>
+  </section>
+
+  <!-- 管理畫面：檢視／逐題移除錯題本與答對紀錄 -->
+  <section id="manage-screen" hidden>
+    <h2>紀錄管理</h2>
+    <div id="manage-tabs" class="nav-row">
+      <button id="manage-tab-wrong">錯題本</button>
+      <button id="manage-tab-correct">答對紀錄</button>
+    </div>
+    <p id="manage-count" class="hint"></p>
+    <div id="manage-list"></div>
+    <div class="nav-row">
+      <button id="manage-back-btn" class="primary">返回設定</button>
+    </div>
   </section>
 
   <!-- 作答畫面 -->
